@@ -64,6 +64,12 @@ export default function RootLayout({
                 >
                   Grafo
                 </Link>
+                <Link
+                  href="/dashboard"
+                  className="hover:text-white transition-colors"
+                >
+                  Dashboard
+                </Link>
               </div>
             </div>
           </div>

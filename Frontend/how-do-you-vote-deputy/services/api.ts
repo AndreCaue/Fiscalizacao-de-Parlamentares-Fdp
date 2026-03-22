@@ -149,3 +149,25 @@ export const integracaoService = {
 };
 
 export default api;
+
+export const statsService = {
+  resumo: () => api.get("/stats/resumo").then((r) => r.data),
+
+  distribuicaoVotos: () =>
+    api.get("/stats/distribuicao-votos").then((r) => r.data),
+
+  disciplinaPartidos: (limit = 20) =>
+    api
+      .get("/stats/disciplina-partidos", { params: { limit } })
+      .then((r) => r.data),
+
+  deputadosDestaque: (limit = 10) =>
+    api
+      .get("/stats/deputados-destaque", { params: { limit } })
+      .then((r) => r.data),
+
+  votacoesDestaque: (limit = 5) =>
+    api
+      .get("/stats/votacoes-destaque", { params: { limit } })
+      .then((r) => r.data),
+};
