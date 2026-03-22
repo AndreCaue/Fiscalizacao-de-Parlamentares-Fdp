@@ -1,0 +1,151 @@
+import axios from "axios";
+import type {
+  Deputado,
+  Partido,
+  Votacao,
+  Voto,
+  PaginatedResponse,
+  ListResponse,
+  ResumoVotacao,
+  VotoPorPartido,
+  GrafoData,
+  EstatisticasDeputado,
+  SyncLog,
+} from "@/types";
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
+  timeout: 15000,
+  headers: { "Content-Type": "application/json" },
+});
+
+// ─── Interceptors ─────────────────────────────────────────────────────────────
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    console.error("[API Error]", err.response?.data || err.message);
+    return Promise.reject(err);
+  },
+);
+
+// ─── Votações ─────────────────────────────────────────────────────────────────
+export const votacoesService = {
+  listar: (params?: {
+    page?: number;
+    limit?: number;
+    tipo?: string;
+    dataInicio?: string;
+    dataFim?: string;
+  }) =>
+    api
+      .get<PaginatedResponse<Votacao>>("/votacoes", { params })
+      .then((r) => r.data),
+
+  recentes: (limit = 10) =>
+    api
+      .get<ListResponse<Votacao>>("/votacoes/recentes", { params: { limit } })
+      .then((r) => r.data),
+
+  buscar: (id: string) =>
+    api.get<Votacao>(`/votacoes/${id}`).then((r) => r.data),
+
+  votos: (
+    id: string,
+    params?: { page?: number; limit?: number; voto?: string },
+  ) =>
+    api
+      .get<PaginatedResponse<Voto>>(`/votacoes/${id}/votos`, { params })
+      .then((r) => r.data),
+
+  resumo: (id: string) =>
+    api.get<ResumoVotacao>(`/votacoes/${id}/resumo`).then((r) => r.data),
+
+  grafo: (id: string) =>
+    api.get<GrafoData>(`/votacoes/${id}/grafo`).then((r) => r.data),
+};
+
+// ─── Deputados ────────────────────────────────────────────────────────────────
+export const deputadosService = {
+  listar: (params?: {
+    page?: number;
+    limit?: number;
+    partido?: string;
+    estado?: string;
+  }) =>
+    api
+      .get<PaginatedResponse<Deputado>>("/deputados", { params })
+      .then((r) => r.data),
+
+  buscar: (id: string) =>
+    api.get<Deputado>(`/deputados/${id}`).then((r) => r.data),
+
+  votos: (id: string, params?: { page?: number; limit?: number }) =>
+    api
+      .get<PaginatedResponse<Voto>>(`/deputados/${id}/votos`, { params })
+      .then((r) => r.data),
+
+  estatisticas: (id: string) =>
+    api
+      .get<EstatisticasDeputado>(`/deputados/${id}/estatisticas`)
+      .then((r) => r.data),
+};
+
+// ─── Partidos ─────────────────────────────────────────────────────────────────
+export const partidosService = {
+  listar: () => api.get<ListResponse<Partido>>("/partidos").then((r) => r.data),
+
+  buscar: (id: string) =>
+    api.get<Partido>(`/partidos/${id}`).then((r) => r.data),
+
+  deputados: (id: string) =>
+    api
+      .get<ListResponse<Deputado>>(`/partidos/${id}/deputados`)
+      .then((r) => r.data),
+};
+
+// ─── Votos ────────────────────────────────────────────────────────────────────
+export const votosService = {
+  porPartido: (votacaoId: string) =>
+    api
+      .get<{
+        data: VotoPorPartido[];
+      }>("/votos/por-partido", { params: { votacaoId } })
+      .then((r) => r.data),
+
+  divergentes: (votacaoId: string) =>
+    api
+      .get("/votos/divergencia", { params: { votacaoId } })
+      .then((r) => r.data),
+};
+
+// ─── Integração ───────────────────────────────────────────────────────────────
+export const integracaoService = {
+  syncCompleto: (dataInicio?: string) =>
+    api
+      .post("/integracao/sync/completo", null, { params: { dataInicio } })
+      .then((r) => r.data),
+
+  syncPartidos: () => api.post("/integracao/sync/partidos").then((r) => r.data),
+
+  syncDeputados: () =>
+    api.post("/integracao/sync/deputados").then((r) => r.data),
+
+  syncVotacoes: (dataInicio?: string, dataFim?: string) =>
+    api
+      .post("/integracao/sync/votacoes", null, {
+        params: { dataInicio, dataFim },
+      })
+      .then((r) => r.data),
+
+  syncVotos: (votacaoId: string) =>
+    api.post(`/integracao/sync/votos/${votacaoId}`).then((r) => r.data),
+
+  logs: (limit = 20) =>
+    api
+      .get<SyncLog[]>("/integracao/logs", { params: { limit } })
+      .then((r) => r.data),
+
+  status: () => api.get("/integracao/status").then((r) => r.data),
+};
+
+export default api;

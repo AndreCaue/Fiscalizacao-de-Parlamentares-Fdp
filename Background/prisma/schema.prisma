@@ -1,0 +1,107 @@
+// This is your Prisma schema file
+// Supports SQLite (dev) and PostgreSQL (prod)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Partido {
+  id         String      @id
+  nome       String
+  sigla      String      @unique
+  deputados  Deputado[]
+  liderancas Lideranca[]
+  criadoEm   DateTime    @default(now())
+  atualizadoEm DateTime  @updatedAt
+
+  @@map("partidos")
+}
+
+model Deputado {
+  id           String      @id
+  nome         String
+  partidoId    String
+  estado       String
+  urlFoto      String?
+  email        String?
+  partido      Partido     @relation(fields: [partidoId], references: [id])
+  votos        Voto[]
+  liderancas   Lideranca[]
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+
+  @@map("deputados")
+}
+
+model Votacao {
+  id           String   @id
+  descricao    String
+  data         DateTime
+  tipo         String   // "Nominal" ou "Simbólica"
+  siglaTipo    String?
+  uri          String?
+  votos        Voto[]
+  orientacoes  OrientacaoBancada[]
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("votacoes")
+}
+
+model Voto {
+  id          String   @id @default(cuid())
+  deputadoId  String
+  votacaoId   String
+  voto        String   // "SIM", "NAO", "ABSTENCAO", "OBSTRUCAO"
+  seguiuOrientacao Boolean?
+  deputado    Deputado @relation(fields: [deputadoId], references: [id])
+  votacao     Votacao  @relation(fields: [votacaoId], references: [id])
+  criadoEm    DateTime @default(now())
+
+  @@unique([deputadoId, votacaoId])
+  @@map("votos")
+}
+
+model OrientacaoBancada {
+  id                String   @id @default(cuid())
+  votacaoId         String
+  siglaPartidoBloco String   // "PT", "PL", "Governo", "Oposição", etc.
+  codPartidoBloco   Int?     // null para blocos (Governo, Oposição, Maioria, Minoria)
+  tipoLideranca     String   // "P" = partido, "B" = bloco
+  orientacao        String   // "SIM", "NAO", "ABSTENCAO", "OBSTRUCAO", "LIBERADO", "AUSENTE"
+  votacao           Votacao  @relation(fields: [votacaoId], references: [id])
+  criadoEm          DateTime @default(now())
+
+  @@unique([votacaoId, siglaPartidoBloco])
+  @@map("orientacoes_bancada")
+}
+
+model Lideranca {
+  id          String   @id @default(cuid())
+  deputadoId  String
+  partidoId   String?
+  tipo        String   // "lider", "vice-lider", "lider_minoria", etc.
+  dataInicio  DateTime?
+  dataFim     DateTime?
+  deputado    Deputado @relation(fields: [deputadoId], references: [id])
+  partido     Partido? @relation(fields: [partidoId], references: [id])
+  criadoEm    DateTime @default(now())
+
+  @@map("liderancas")
+}
+
+model SyncLog {
+  id          String   @id @default(cuid())
+  tipo        String   // "deputados", "partidos", "votacoes", "votos"
+  status      String   // "success", "error", "running"
+  mensagem    String?
+  registros   Int?
+  criadoEm    DateTime @default(now())
+
+  @@map("sync_logs")
+}
