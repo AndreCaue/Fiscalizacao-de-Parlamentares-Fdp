@@ -18,7 +18,6 @@ async def sync_data(background_tasks: BackgroundTasks, db: Session = Depends(get
 @router.post("/sync/completo")
 async def sync_completo(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     service = IntegracaoService(db)
-    # implementar no front para passar data #Feature
     background_tasks.add_task(service.sync_full, data_inicio="2023-01-01")
     return {"message": "Sincronização completa iniciada em segundo plano"}
 

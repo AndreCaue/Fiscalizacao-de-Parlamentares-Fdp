@@ -87,6 +87,7 @@ class IntegracaoService:
                 dep.estado = d["siglaUf"]
                 dep.url_foto = d["urlFoto"]
                 dep.email = d.get("email")
+                dep.cpf = d.get("cpf")
                 dep.partido_id = partido.id
                 cont += 1
 

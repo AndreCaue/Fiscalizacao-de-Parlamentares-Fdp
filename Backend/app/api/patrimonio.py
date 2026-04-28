@@ -113,6 +113,14 @@ def ingerir_sync(
     return IngestaoOut(status="concluido", ano=ano, detalhes=stats)
 
 
+@router.get("/alertas", summary="Possíveis enriquecimentos suspeitos")
+def alertas(
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    return patrimonio_service.gerar_alertas(db, limit)
+
+
 @router.get("/{deputado_id}", response_model=list[BemOut], summary="Bens de um deputado")
 def listar_bens(
     deputado_id: str,
@@ -163,15 +171,6 @@ def resumo(
     total atual, variação percentual e flags de alerta.
     """
     return patrimonio_service.resumo_patrimonio(db, deputado_id)
-
-
-@router.get("/alertas", summary="Possíveis enriquecimentos suspeitos")
-def alertas(
-    limit: int = 20,
-    db: Session = Depends(get_db),
-):
-    return patrimonio_service.gerar_alertas(db, limit)
-
 
 """```
 FEATURE.

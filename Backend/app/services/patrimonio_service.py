@@ -80,13 +80,8 @@ def listar_bens(
     ]
 
 
-def calcular_evolucao(db: Session, deputado_id: str) -> Optional[EvolucaoDTO]:
-    """
-    Evolução 2018 → 2022 (somente reeleitos)
-    """
 
-    if not _eh_reeleito(db, deputado_id):
-        return None
+def calcular_evolucao(db: Session, deputado_id: str):
 
     rows = (
         db.query(
@@ -102,84 +97,33 @@ def calcular_evolucao(db: Session, deputado_id: str) -> Optional[EvolucaoDTO]:
     if not rows:
         return None
 
-    por_ano = {
-        r.ano_eleicao: {"total": r.total or 0.0, "qtd": r.qtd}
-        for r in rows
+    total_2022 = next((r.total for r in rows if r.ano_eleicao == 2022), 0.0)
+    qtd_2022 = next((r.qtd for r in rows if r.ano_eleicao == 2022), 0)
+
+    return {
+        "total_2022": float(total_2022),
+        "variacao_absoluta": None,
+        "variacao_percentual": None,
+        "bens_2022": qtd_2022,
+        "por_tipo": []
     }
 
-    total_2018 = por_ano.get(2018, {}).get("total", 0.0)
-    total_2022 = por_ano.get(2022, {}).get("total", 0.0)
+def resumo_patrimonio(db: Session, deputado_id: str):
 
-    qtd_2018 = por_ano.get(2018, {}).get("qtd", 0)
-    qtd_2022 = por_ano.get(2022, {}).get("qtd", 0)
-
-    variacao_abs = total_2022 - total_2018
-
-    variacao_pct = (
-        (variacao_abs / total_2018 * 100) if total_2018 > 0 else None
-    )
-
-    tipo_rows = (
-        db.query(
-            PatrimonioTSE.ds_tipo_bem,
-            func.sum(
-                case(
-                    (PatrimonioTSE.ano_eleicao == 2018,
-                     PatrimonioTSE.vr_bem_candidato),
-                    else_=0,
-                )
-            ).label("valor_2018"),
-            func.sum(
-                case(
-                    (PatrimonioTSE.ano_eleicao == 2022,
-                     PatrimonioTSE.vr_bem_candidato),
-                    else_=0,
-                )
-            ).label("valor_2022"),
-        )
+    total = (
+        db.query(func.sum(PatrimonioTSE.vr_bem_candidato))
         .filter(PatrimonioTSE.deputado_id == deputado_id)
-        .group_by(PatrimonioTSE.ds_tipo_bem)
-        .order_by(func.sum(PatrimonioTSE.vr_bem_candidato).desc())
-        .all()
+        .scalar()
     )
 
-    por_tipo = [
-        {
-            "tipo": r.ds_tipo_bem,
-            "valor_2018": float(r.valor_2018 or 0),
-            "valor_2022": float(r.valor_2022 or 0),
-            "variacao": float((r.valor_2022 or 0) - (r.valor_2018 or 0)),
-        }
-        for r in tipo_rows
-    ]
-
-    return EvolucaoDTO(
-        deputado_id=deputado_id,
-        total_2018=total_2018,
-        total_2022=total_2022,
-        variacao_absoluta=variacao_abs,
-        variacao_percentual=variacao_pct,
-        bens_2018=qtd_2018,
-        bens_2022=qtd_2022,
-        por_tipo=por_tipo,
-    )
-
-
-def resumo_patrimonio(db: Session, deputado_id: str) -> dict:
-
-    evolucao = calcular_evolucao(db, deputado_id)
-
-    if not evolucao:
+    if not total:
         return {"deputado_id": deputado_id, "dados_disponiveis": False}
 
     return {
         "deputado_id": deputado_id,
         "dados_disponiveis": True,
-        "ano_referencia": 2022,
-        "total_declarado": evolucao.total_2022,
-        "variacao_pct": evolucao.variacao_percentual,
-        "variacao_abs": evolucao.variacao_absoluta,
-        "tem_evolucao": evolucao.total_2018 > 0,
+        "total_declarado": float(total),
+        "ano_referencia": 2022
     }
 
 

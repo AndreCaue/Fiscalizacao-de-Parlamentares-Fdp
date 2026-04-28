@@ -6,7 +6,6 @@ from ..services.integracao_service import IntegracaoService
 
 logger = logging.getLogger(__name__)
 
-
 async def popular_banco_inicial():
     db: Session = SessionLocal()
     try:
